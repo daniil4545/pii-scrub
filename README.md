@@ -24,7 +24,7 @@ When digits are left that no rule recognizes, the tool refuses instead of passin
 
 ```console
 $ cat demo2.txt
-Менеджер: Код 482 193 774 05 сохраните.
+Менеджер: Код 123 45 67 сохраните.
 $ scrub demo2.txt -o demo2.clean.txt; echo "exit=$?"
 scrub: отказ, остаток в строках 1
 exit=3
