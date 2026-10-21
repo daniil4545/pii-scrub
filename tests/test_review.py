@@ -1,4 +1,4 @@
-"""Воспроизведения замечаний ревью кода: каждая форма диктовки и каждая утечка - тестом."""
+"""Reproductions of code review remarks: every dictation form and every leak gets a test."""
 
 import re
 import time
@@ -49,7 +49,7 @@ def test_phone_words_before_an_amount_with_currency_still_masked() -> None:
 def test_mixed_script_spoken_email_masked(text: str) -> None:
     result = clean(text)
 
-    assert re.search(r"\[(EMAIL|САЙТ)_1\]", result)  # метку даёт то, что нашлось раньше
+    assert re.search(r"\[(EMAIL|САЙТ)_1\]", result)  # the earlier finding gives the label
     assert "собака" not in result
     assert "иван" not in result
 

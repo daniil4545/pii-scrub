@@ -15,7 +15,7 @@ def rows() -> list[dict]:
 
 
 def oracle(rows: list[dict]):
-    """Заведомо хороший выход: убирает из текста ровно секреты набора."""
+    """A known-good output: removes exactly the secrets of the set from the text."""
     secrets = {row["text"]: row["secrets"] for row in rows}
 
     def scrub(text: str) -> str:

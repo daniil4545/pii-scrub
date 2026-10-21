@@ -123,7 +123,7 @@ def test_person_in_transcript_and_call_report_gets_one_label(
     run: Run, write_input: WriteInput, tmp_path: Path
 ) -> None:
     out = tmp_path / "out.json"
-    raw = json.dumps(REPORT_JSON)  # ensure_ascii: в файле только \uXXXX
+    raw = json.dumps(REPORT_JSON)  # ensure_ascii: only \uXXXX in the file
     assert "\\u" in raw
 
     result = run([str(write_input(raw)), "-o", str(out)])

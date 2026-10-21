@@ -6,7 +6,7 @@ description = "Replace personal data in Russian text with stable labels: CLI and
 requires-python = ">=3.13,<3.14"
 dependencies = [
   "natasha==1.6.0",
-  # natasha тянет pymorphy2, он на Python 3.13 импортирует pkg_resources; в setuptools 81+ его нет.
+  # natasha pulls in pymorphy2, which imports pkg_resources on Python 3.13; setuptools 81+ no longer has it.
   "setuptools<81",
   "phonenumbers==9.0.41",
   "python-stdnum==2.2",
@@ -34,8 +34,8 @@ packages = ["src/pii_scrub"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-  "integration: нужна БД или очередь",
-  "live: платный или живой внешний вызов",
+  "integration: needs a database or a queue",
+  "live: a paid or live external call",
 ]
 addopts = "-m 'not live'"
 
@@ -45,18 +45,18 @@ line-length = 100
 [tool.ruff.lint]
 select = [
   "E", "F", "W", # pycodestyle, pyflakes
-  "I", # порядок импортов
-  "UP", # современный синтаксис
-  "B", # вероятные ошибки
-  "ANN", # type hints везде
+  "I", # import order
+  "UP", # modern syntax
+  "B", # likely bugs
+  "ANN", # type hints everywhere
   "BLE", # except Exception
-  "S", # bandit: опасные вызовы, секреты в коде, subprocess, pickle
-  "C901", # сложность функции
-  "PLR0913", # слишком много аргументов
-  "PLR0915", # слишком много операторов
+  "S", # bandit: dangerous calls, secrets in code, subprocess, pickle
+  "C901", # function complexity
+  "PLR0913", # too many arguments
+  "PLR0915", # too many statements
   "RUF",
 ]
-# Русский текст в строках и комментариях: латинские двойники кириллицы не ошибка.
+# Russian text in strings and comments: Latin look-alikes of Cyrillic letters are not an error.
 ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.mccabe]

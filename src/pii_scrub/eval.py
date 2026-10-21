@@ -1,7 +1,7 @@
-"""Замер очистки на синтетическом наборе: пропуски, ложные маски, отказы.
+"""Scrubbing measurement on the synthetic set: misses, false masks, refusals.
 
-Запуск: make eval. Код выхода 1, если нарушено правило приёмки (docs/spec.md, раздел 7).
-Печатает только виды, формы и номера случаев, тексты набора не выводит.
+Run: make eval. Exit code 1 if an acceptance rule is broken.
+Prints only kinds, forms and case numbers, never the texts of the set.
 """
 
 import argparse
@@ -73,7 +73,7 @@ def evaluate(rows: list[dict], scrub: Scrub, only_visible: bool = False) -> Repo
         if output is None:
             report.pii_refused += 1
             continue
-        left = LABEL.sub("", output)  # цифры в номерах меток не утечка
+        left = LABEL.sub("", output)  # digits in label numbers are not a leak
         for secret in row["secrets"]:
             counts = report.secrets[(secret["kind"], secret["form"])]
             counts[0] += 1

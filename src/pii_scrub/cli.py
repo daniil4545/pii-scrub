@@ -1,4 +1,4 @@
-"""CLI scrub: аргументы, JSON-режим, файлы, сводка, коды выхода."""
+"""CLI scrub: arguments, JSON mode, files, summary, exit codes."""
 
 import argparse
 import json
@@ -12,10 +12,12 @@ from typing import Any
 from pii_scrub.scrub import MAX_INPUT_BYTES, Scrubber, ScrubRefused
 
 ESCAPE = re.compile(r"\\u[0-9a-fA-F]{4}")
-# JSON - объект или массив значений; "[ИМЯ_1]" и "[Оператор]:" в начале текста - это текст
+# JSON is an object or an array of values; "[ИМЯ_1]" and "[Оператор]:" at the start of a text are
+# text
 JSON_START = re.compile(r'\s*(\{|\[\s*(?!\d+:\d)[{\["\]\d-])')
 REPORT_MODE = 0o600
-# Причина отказа - код выхода: остаток требует человека, остальное - вход или поломка.
+# The refusal reason decides the exit code: a residue needs a human, the rest is an input error or a
+# breakdown.
 EXIT_RESIDUE = 3
 EXIT_INPUT = 2
 EXIT_BROKEN = 1
@@ -24,7 +26,7 @@ INPUT_REASONS = {"вход слишком велик", "недопустимый
 
 
 class InputError(Exception):
-    """Ошибка входа или выхода: сообщение без текста входа, код выхода 2."""
+    """Input or output error: the message carries no input text, exit code 2."""
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -65,9 +67,10 @@ def read_input(path: str | None) -> str:
 
 
 def scrub_json(value: Any, scrubber: Scrubber, path: str, refusals: list[str]) -> Any:  # noqa: ANN401
-    """Чистит строковые значения; структура, ключи и остальные типы не меняются.
+    """Cleans string values; structure, keys and other types stay unchanged.
 
-    Отказ по значению не прерывает обход: места остатка собираются по всему файлу."""
+    A refusal on one value does not stop the walk: the residue places are collected over the whole
+    file."""
     if isinstance(value, str):
         if ESCAPE.search(value):
             raise InputError(f"leftover \\uXXXX escape in value {path}: NER cannot see such names")
@@ -119,7 +122,7 @@ def write_output(path: str | None, text: str) -> None:
 
 
 def write_report(path: str, scrubber: Scrubber) -> None:
-    """Единственное место с оригиналами: права 0600 выставляются до записи данных."""
+    """The only place with originals: mode 0600 is set before any data is written."""
     unique = dict.fromkeys(scrubber.replacements)
     lines = [f"{label}\t{' '.join(original.split())}" for label, original in unique]
     lines += [f"ОСТАТОК\t{place}" for place in scrubber.places]
@@ -129,20 +132,21 @@ def write_report(path: str, scrubber: Scrubber) -> None:
         with os.fdopen(fd, "w", encoding="utf-8") as report:
             report.write("\n".join(lines) + "\n" if lines else "")
     except OSError as err:
-        # Частичный отчёт с оригиналами на диске не оставляем.
+        # No partial report with originals is left on disk.
         Path(path).unlink(missing_ok=True)
         raise InputError(f"cannot write report: {err.strerror}") from err
 
 
 def summary(scrubber: Scrubber) -> str:
-    """Счётчики замен; текста входа в сводке нет."""
+    """Replacement counters; the summary has no input text."""
     kinds = Counter(label[1 : label.rindex("_")] for label, _ in scrubber.replacements)
     detail = ", ".join(f"{kind} {count}" for kind, count in kinds.items())
     return f"scrub: замен {len(scrubber.replacements)}" + (f" ({detail})" if detail else "")
 
 
 def refusal_message(refused: ScrubRefused) -> str:
-    """Сообщение об отказе: причина и места остатка (строки или пути), без текста входа."""
+    """Refusal message: the reason and the residue places (lines or paths), without the input
+    text."""
     if not refused.places:
         return f"scrub: отказ, {refused.reason}"
     if all(re.fullmatch(r"\d+:\d+", place) for place in refused.places):
@@ -163,11 +167,12 @@ def run(args: argparse.Namespace) -> None:
     try:
         cleaned = scrub_text(read_input(args.input), scrubber)
     except ScrubRefused as refused:
-        # Человеку нужны места остатка: отчёт пишется и при отказе, вывода нет.
+        # A human needs the residue places: the report is written on refusal too, there is no
+        # output.
         if args.report and refused.reason == RESIDUE:
             write_report(args.report, scrubber)
         raise
-    # отчёт раньше выхода: на коде 2 выход не должен остаться записанным
+    # the report goes before the output: on exit code 2 the output must not stay written
     if args.report:
         write_report(args.report, scrubber)
     try:
@@ -189,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
     except ScrubRefused as refused:
         print(refusal_message(refused), file=sys.stderr)
         return refusal_code(refused)
-    except Exception as err:  # noqa: BLE001 - граница процесса: вид ошибки без текста входа
+    except Exception as err:  # noqa: BLE001 - process boundary: the error kind only, no input text
         print(f"scrub: internal error: {type(err).__name__}", file=sys.stderr)
         return EXIT_BROKEN
     return 0

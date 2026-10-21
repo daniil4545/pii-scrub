@@ -1,6 +1,6 @@
-# Роли и сокращения из CRM и продаж: Natasha принимает их за имена и организации.
-# Слово из списка с окончанием до двух букв («МОПу», «РОПом») не маскируется.
-# Обычные слова («менеджер», «директор») сюда не входят: они дали бы пропуск фамилии «Директоров».
+# Roles and abbreviations from CRM and sales: Natasha takes them for names and organizations.
+# A word of the list with an ending of up to two letters («МОПу», «РОПом») is not masked.
+# Ordinary words («менеджер», «директор») are not here: they would miss the surname «Директоров».
 моп
 роп
 лпр

@@ -16,16 +16,16 @@ fmt-check:
 lint:
 	uv run ruff check .
 
-# Ступень 1: без БД и сети; сеть в тестах закрыта флагом pytest-recording.
+# Tier 1: no database, no network; the network is closed in tests by the pytest-recording flag.
 test-fast:
 	uv run pytest -q -m "not integration and not live" --block-network
 
-# Ступень 2: без БД; сеть закрыта.
+# Tier 2: no database; the network is closed.
 test:
 	uv run pytest -q -m "not live" --block-network
 
-# pip-audit проверяет зафиксированные зависимости из uv.lock: экспорт полный, поэтому
-# окружение для разрешения зависимостей не нужно (--no-deps --disable-pip).
+# pip-audit checks the pinned dependencies from uv.lock: the export is complete, so no
+# environment is needed to resolve dependencies (--no-deps --disable-pip).
 security:
 	@set -e; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
 	uv export --frozen --no-hashes --no-emit-project > "$$tmp/req.txt"; \
@@ -38,16 +38,16 @@ security:
 	mkdir "$$tmp/tree"; git -C "$$root" archive "$$tree" | tar -x -C "$$tmp/tree"; \
 	cd "$$tmp/tree" && $(GITLEAKS) dir --no-banner --redact .
 
-# Ступени 0-1, секунды.
+# Tiers 0-1, seconds.
 commit-check: fmt-check lint test-fast
 
-# Ступени 0-2: этот же вызов делает CI на PR.
+# Tiers 0-2: CI runs this same target on a PR.
 ci-check: fmt-check lint security test
 
-# Замер на замороженном наборе: код выхода 1 при нарушении правил приёмки (docs/spec.md, раздел 7).
+# Measurement on the frozen set: exit code 1 if an acceptance rule is broken.
 eval:
 	uv run python -m pii_scrub.eval
 
-# Пересборка набора из seed; результат коммитится до пробного прогона и потом не меняется.
+# Rebuild of the set from the seed; the result is committed before the trial run and not changed afterwards.
 gen:
 	uv run python tests/gen/generate.py

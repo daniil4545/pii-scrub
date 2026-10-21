@@ -20,7 +20,7 @@ class Result:
 def run(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> Callable[..., Result]:
-    """Запускает CLI в процессе: main(argv), stdin подменяется байтами."""
+    """Runs the CLI in process: main(argv), stdin is replaced with bytes."""
 
     def call(argv: list[str], stdin: bytes = b"") -> Result:
         monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(stdin), encoding="utf-8"))

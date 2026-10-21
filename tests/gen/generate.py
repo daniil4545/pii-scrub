@@ -1,8 +1,8 @@
-"""Генератор синтетики в стиле звонков: тексты с ПДн, негативный набор, длинный звонок.
+"""Generator of call-style synthetic data: texts with personal data, a negative set, a long call.
 
-Запуск: uv run python tests/gen/generate.py [--out tests/data/synthetic.jsonl]
-Всё выдумано: Faker ru_RU и шаблоны. Строка набора: id, group, deferred, text, secrets.
-Секрет: kind, form, parts - куски, которые не должны остаться в очищенном тексте.
+Run: uv run python tests/gen/generate.py [--out tests/data/synthetic.jsonl]
+Everything is invented: Faker ru_RU and templates. A set row: id, group, deferred, text, secrets.
+Secret: kind, form, parts - the pieces that must not remain in the cleaned text.
 """
 
 import argparse
@@ -104,7 +104,7 @@ GREETINGS = [
 ]
 CLOSINGS = [("Менеджер", "Всего доброго, до свидания."), ("Клиент", "Спасибо, до связи.")]
 
-# pymorphy2 зовёт inspect.getargspec, которого нет в Python 3.13; ставим совместимую замену.
+# pymorphy2 calls inspect.getargspec, which Python 3.13 lacks; install a compatible replacement.
 inspect.getargspec = lambda func: inspect.getfullargspec(func)[:4]  # type: ignore[attr-defined]
 warnings.filterwarnings("ignore", message="pkg_resources is deprecated")
 MORPH = pymorphy2.MorphAnalyzer()
@@ -115,7 +115,7 @@ def digits_words(digits: str) -> str:
 
 
 def pair_words(digits: str) -> str:
-    """Пары цифр словами: «05» - «ноль пять», «67» - «шестьдесят семь»."""
+    """Pairs of digits in words: «05» is «ноль пять», «67» is «шестьдесят семь»."""
     out = []
     for i in range(0, len(digits), 2):
         pair = digits[i : i + 2]
@@ -128,7 +128,7 @@ def pair_words(digits: str) -> str:
 
 
 def windows(words: list[str], size: int) -> list[str]:
-    """Непересекающиеся окна по size слов; хвост добавляется окном от конца."""
+    """Non-overlapping windows of size words; the tail is added as a window from the end."""
     out = [" ".join(words[i : i + size]) for i in range(0, len(words) - size + 1, size)]
     if len(words) % size:
         out.append(" ".join(words[-size:]))
@@ -296,7 +296,7 @@ def snils_digits(rng: random.Random) -> str:
 
 
 def make_secret(kind: str, rng: random.Random, fake: Faker) -> tuple[str, str, list[dict]]:
-    """Возвращает говорящего, реплику и секреты."""
+    """Returns the speaker, the line and the secrets."""
     if kind == "name":
         forms, _ = make_name(rng, fake)
         case, speaker, template = rng.choice(NAME_TEMPLATES)
@@ -376,7 +376,7 @@ def make_secret(kind: str, rng: random.Random, fake: Faker) -> tuple[str, str, l
 
 
 def unique_parts(secrets: list[dict], text: str) -> list[dict]:
-    """Оставляет куски, которые встречаются в тексте один раз: общее слово не доказывает утечку."""
+    """Keeps the pieces that occur in the text once: a common word does not prove a leak."""
     kept = []
     for item in secrets:
         parts = [p for p in item["parts"] if text.count(p) == 1]
@@ -429,7 +429,7 @@ def build_negative(rng: random.Random, with_order_number: bool, with_repeat: boo
     if with_order_number:
         sentences.append(f"Заказ номер {rng.randint(1000000, 9999999)} уже в пути.")
     if with_repeat:
-        # Подтверждение количества: куски склеиваются как диктовка и дают отказ (docs/spec.md).
+        # Acknowledged quantity: the pieces glue together like dictation and give a refusal.
         sentences.append("Сто?\nМенеджер: Да, сто пятьдесят.\nКлиент: Сто.")
     for sentence in sentences:
         lines.append(f"{rng.choice(['Менеджер', 'Клиент'])}: {sentence}")
@@ -453,7 +453,7 @@ def generate() -> list[dict]:
             }
         )
     for i in range(NEGATIVE_CASES):
-        # Голый номер заказа от 7 цифр даёт отказ (docs/spec.md): в наборе он у каждого 16-го текста.
+        # A bare order number of 7 or more digits gives a refusal: every 16th text of the set has one.
         rows.append(
             {
                 "id": f"neg-{i:03d}",

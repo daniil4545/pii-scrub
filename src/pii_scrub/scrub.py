@@ -1,4 +1,4 @@
-"""Поиск ПДн в тексте и замена сквозными метками."""
+"""Finding personal data in text and replacing it with stable labels."""
 
 import re
 import warnings
@@ -34,7 +34,7 @@ PREFIXES = {
 }
 NER_KINDS = {"PER": "PERSON", "LOC": "PLACE", "ORG": "ORG"}
 PERSON_GRAMMEMES = {"Name", "Surn", "Patr"}
-# Части речи, которые вместе со стоп-листом отсекают «Подскажите» и «Да» из спана имени.
+# Parts of speech that, together with the stop list, cut «Подскажите» and «Да» out of a name span.
 NOT_NAME_POS = {
     "VERB",
     "INFN",
@@ -54,7 +54,8 @@ MAX_INPUT_BYTES = 1_000_000
 STOP_SUFFIX = 2
 
 LABEL = re.compile(r"\[[А-ЯЁA-Z]+_\d+\]")
-# Длинная цифровая цепочка: 10 цифр и больше. Вид по длине, контрольная сумма - у валидатора.
+# A long digit chain: 10 digits or more. The kind comes from the length, the checksum from the
+# validator.
 DIGIT_RUN = re.compile(r"(?<!\d)\d{10,20}(?!\d)")
 RUN_KINDS = {10: "INN", 12: "INN", 13: "OGRN", 15: "OGRN", 20: "ACCOUNT"}
 VALIDATORS = {"INN": inn.is_valid, "OGRN": ogrn.is_valid}
@@ -63,7 +64,7 @@ SNILS = re.compile(r"(?<!\d)\d{3}[- ]?\d{3}[- ]?\d{3}[- ]?\d{2}(?!\d)")
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
 PASSPORT = re.compile(r"(?<!\d)\d{4} \d{6}(?!\d)")
 NICK = re.compile(r"(?<![\w@])@[A-Za-z][A-Za-z0-9_]{2,}")
-# Домен без списка зон дал бы «call.txt»: берём частые зоны.
+# A domain without a zone list would match «call.txt»: only frequent zones are taken.
 SITE = re.compile(
     r"(?<![\w.-])(?:https?://)?(?:[\w-]+\.)+(?:ru|рф|su|com|net|org|info|biz|io|me|by|kz|ua)"
     r"(?![\w-])",
@@ -71,7 +72,7 @@ SITE = re.compile(
 )
 REGEX_KINDS = [("EMAIL", EMAIL), ("PASSPORT", PASSPORT), ("NICK", NICK), ("SITE", SITE)]
 
-# Адрес: маркер улицы, название с заглавной, затем дом, корпус, квартира.
+# Address: a street marker, a capitalized name, then house, building, flat.
 STREET = (
     r"(?i:улиц\w*|ул\.?|проспект\w*|пр-кт\.?|пр-т\.?|пр\.|переул\w*|пер\.|бульвар\w*|"
     r"бул\.|б-р|шосс?е\w*|ш\.|набережн\w*|наб\.|площад\w*|пл\.|аллея|алл\.|проезд\w*|"
@@ -83,7 +84,7 @@ ADDRESS = re.compile(
     r"(?:,?[ \t]*(?i:корпус|корп\.?|строение|стр\.?)[ \t]*\d+)?"
     r"(?:,?[ \t]*(?i:квартира|кв\.?|офис|оф\.?)[ \t]*\d+)?"
 )
-# Дата рождения: дата в той же фразе после «родился», «рождения».
+# Birth date: a date in the same phrase after «родился», «рождения».
 BIRTH_TRIGGER = re.compile(r"(?i:родил\w*|рождени\w+)")
 MONTHS = "января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря"
 BIRTH_DATE = re.compile(
@@ -92,12 +93,12 @@ BIRTH_DATE = re.compile(
 )
 BIRTH_WINDOW = 80
 
-# Почта словами: «иван точка петров собака мэйл точка ру».
+# E-mail in words: «иван точка петров собака мэйл точка ру».
 WORD = re.compile(r"[A-Za-zА-Яа-яЁё0-9]+")
 MAIL_AT = "собака"
 MAIL_DOT = "точка"
 MAIL_ZONES = {"ру", "ком", "нет", "орг", "юа", "бай", "кз", "инфо", "рф", "су", "ай", "ио"}
-# Зона, написанная латиницей: «собака gmail точка com», «собака gmail.com».
+# A zone written in Latin letters: «собака gmail точка com», «собака gmail.com».
 MAIL_LATIN_ZONES = {"ru", "com", "net", "org", "info", "su", "ua", "by", "kz"}
 MAIL_DOMAIN = re.compile(
     rf"\s+[\w-]+(?:\.[\w-]+)*\.(?:{'|'.join(sorted(MAIL_LATIN_ZONES))}|рф)\b", re.IGNORECASE
@@ -124,7 +125,8 @@ MAIL_LEFT_STOP = {
 }
 MAIL_LEFT = 8
 MAIL_RIGHT = 3
-# «собака», до трёх слов, «точка» и зона либо домен с точкой: остаток почты, продиктованной словами.
+# «собака», up to three words, «точка» and a zone or a domain with a dot: the rest of an e-mail
+# dictated in words.
 _ZONES = "|".join(sorted(MAIL_ZONES | MAIL_LATIN_ZONES))
 MAIL_WORDS = re.compile(
     rf"\b{MAIL_AT}\b(?:(?:\W+\w+){{0,{MAIL_RIGHT}}}?\W+{MAIL_DOT}\W+(?:{_ZONES})\b"
@@ -132,7 +134,7 @@ MAIL_WORDS = re.compile(
     re.IGNORECASE,
 )
 
-# Остаток после масок: цифры, записанные цифрами или словами, и почта словами.
+# Residue after masking: digits written as digits or as words, and an e-mail in words.
 LONG_NUMBER = re.compile(r"\d[\d ()-]*\d")
 LONG_NUMBER_DIGITS = 7
 CURRENCY = re.compile(
@@ -140,7 +142,7 @@ CURRENCY = re.compile(
     r"(?:руб|₽|\$|€|р\b|тыс|млн|миллион|долл|евро|копе|тенге|юан|гривн|сом\b|лир|фунт|иен)",
     re.IGNORECASE,
 )
-# Даты цифрами с дефисом и временем: остатком не бывают.
+# Dates written with digits and hyphens, and times, are never a residue.
 DATE_ANY = re.compile(
     r"\b\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])(?:[ T]\d{2}:\d{2}(?::\d{2})?)?\b"
     r"|\b(?:0?[1-9]|[12]\d|3[01])-(?:0?[1-9]|1[0-2])-(?:\d{4}|\d{2})\b"
@@ -153,7 +155,7 @@ WINDOW_RUN = re.compile(rf"(?<!\d)\d{{11,{MAX_WINDOW_RUN}}}(?!\d)")
 
 
 class ScrubRefused(Exception):
-    """Очистка отказала: текст нельзя передавать дальше. Сообщение без текста входа."""
+    """Scrubbing refused: the text must not be passed on. The message carries no input text."""
 
     def __init__(self, reason: str, places: list[str] | None = None) -> None:
         super().__init__(reason)
@@ -166,13 +168,13 @@ class Finding:
     start: int
     stop: int
     kind: str  # PERSON, PLACE, ORG, PHONE, EMAIL, CARD, INN, OGRN, ACCOUNT, PASSPORT, SNILS, ...
-    key: str  # ключ сквозной метки
+    key: str  # key of the stable label
 
 
 @cache
 def load_natasha() -> tuple[Segmenter, NewsNERTagger, MorphVocab]:
     with warnings.catch_warnings():
-        # pymorphy2 импортирует pkg_resources; setuptools<81 закреплён в зависимостях.
+        # pymorphy2 imports pkg_resources; setuptools<81 is pinned in the dependencies.
         warnings.filterwarnings("ignore", message="pkg_resources is deprecated")
         return Segmenter(), NewsNERTagger(NewsEmbedding()), MorphVocab()
 
@@ -199,7 +201,7 @@ def snils_valid(digits: str) -> bool:
 
 
 def find_numbers(text: str) -> list[Finding]:
-    """Номера с контрольной суммой (ИНН, ОГРН, карта, СНИЛС) и счёт из 20 цифр."""
+    """Numbers with a checksum (INN, OGRN, card, SNILS) and a 20-digit account."""
     found = []
     for match in DIGIT_RUN.finditer(text):
         kind = RUN_KINDS.get(len(match.group()))
@@ -239,7 +241,7 @@ def phone_key(digits: str) -> str | None:
 
 
 def find_windows(view: View) -> list[Finding]:
-    """Окна по цепочке цифр: лишняя цифра рядом с номером не прячет сам номер."""
+    """Windows over a digit chain: an extra digit next to a number does not hide the number."""
     found = []
     for run in WINDOW_RUN.finditer(view.text):
         digits = run.group()
@@ -262,9 +264,10 @@ def window_kind(digits: str) -> tuple[str, str]:
 
 
 def find_spoken_numbers(text: str) -> list[Finding]:
-    """Числа словами и кусками: поиск по проекции, спаны переносятся на целые исходные куски."""
+    """Numbers in words and in pieces: search on the projection, spans are carried over to whole
+    source pieces."""
     found = []
-    # Даты с дефисами в проекцию не идут: «2025-12-14 10:30» - не десять цифр подряд.
+    # Dates with hyphens stay out of the projection: «2025-12-14 10:30» is not ten digits in a row.
     dateless = DATE_ANY.sub(lambda m: BLANK * len(m.group()), text)
     for view in build_views(dateless):
         if not view.segments:
@@ -277,7 +280,8 @@ def find_spoken_numbers(text: str) -> list[Finding]:
 
 
 def find_spoken_emails(text: str) -> list[Finding]:
-    """Пара «собака ... точка зона» или «собака домен.зона» и до восьми слов слева от неё."""
+    """A pair «собака ... точка зона» or «собака домен.зона» and up to eight words to the left of
+    it."""
     words = list(WORD.finditer(text))
     lowered = [w.group().lower() for w in words]
     found = []
@@ -335,8 +339,9 @@ def find_patterns(text: str) -> list[Finding]:
 
 
 def is_name_token(word: str, vocab: MorphVocab) -> bool:
-    """Не имя только слово, у которого нет разбора с граммемами имени и все разборы - глаголы,
-    частицы, местоимения. Редкая фамилия без разбора остаётся именем: утечка хуже лишней маски."""
+    """A word is not a name only if it has no parse with name grammemes and all parses are verbs,
+    particles or pronouns. A rare surname without a parse stays a name: a leak is worse than an
+    extra mask."""
     if is_stop(word):
         return False
     parses = vocab.parse(word)
@@ -346,12 +351,12 @@ def is_name_token(word: str, vocab: MorphVocab) -> bool:
 
 
 def span_key(tokens: list, kind: str, vocab: MorphVocab) -> str:
-    """Нормальные формы слов: «Ивану Сергеевичу» и «Иван Сергеевич» дают один ключ."""
+    """Normal forms of the words: «Ивану Сергеевичу» and «Иван Сергеевич» give one key."""
     words = []
     for token in tokens:
         parses = vocab.parse(token.text)
         if kind == "PER":
-            # Слова без граммем Name, Surn, Patr в ключ не входят.
+            # Words without the grammemes Name, Surn, Patr stay out of the key.
             parses = [p for p in parses if PERSON_GRAMMEMES & set(p.tag.grammemes)]
         if parses:
             words.append(parses[0].normal_form)
@@ -359,7 +364,7 @@ def span_key(tokens: list, kind: str, vocab: MorphVocab) -> str:
 
 
 def person_tokens(span: Span, vocab: MorphVocab) -> list:
-    """Из спана имени убирает глаголы и частицы по краям: «Подскажите» именем не считается."""
+    """Removes verbs and particles at the edges of a name span: «Подскажите» is not a name."""
     flags = [is_name_token(t.text, vocab) for t in span.tokens]
     if True not in flags:
         return []
@@ -391,7 +396,7 @@ def find_names(text: str) -> list[Finding]:
 
 
 def merge(findings: list[Finding]) -> list[Finding]:
-    """Пересекающиеся спаны в один; вид и ключ берутся у находки, найденной раньше."""
+    """Overlapping spans become one; kind and key come from the finding that was found earlier."""
     ranked = sorted(enumerate(findings), key=lambda pair: (pair[1].start, pair[0]))
     groups: list[list[tuple[int, Finding]]] = []
     for pair in ranked:
@@ -409,13 +414,14 @@ def merge(findings: list[Finding]) -> list[Finding]:
 
 
 def exempt(blanked: str, stop: int) -> bool:
-    """Сумма с валютой не остаток."""
+    """An amount with a currency is not a residue."""
     return bool(CURRENCY.match(blanked[stop : stop + 30]))
 
 
 def find_residue(blanked: str) -> list[int]:
-    """Начала мест, где после масок остались цифры или почта словами. Работает по тексту с
-    закрашенными находками, поэтому координаты совпадают с исходным текстом."""
+    """Starts of the places where digits or an e-mail in words are left after masking. Works on the
+    text with
+    the findings painted over, so the coordinates match the source text."""
     spans: list[tuple[int, int]] = []
     dateless = DATE_ANY.sub(lambda m: BLANK * len(m.group()), blanked)
     for match in LONG_NUMBER.finditer(dateless):
@@ -423,7 +429,7 @@ def find_residue(blanked: str) -> list[int]:
         if digits >= LONG_NUMBER_DIGITS and not exempt(blanked, match.end()):
             spans.append((match.start(), match.end()))
     for chain in build_views(dateless)[VIEW_RELAY].chains:
-        # Числа с «тысяча» и «миллион» - суммы и количества, в остаток не входят.
+        # Numbers with «тысяча» and «миллион» are amounts and quantities, not a residue.
         digits = sum(s.proj_stop - s.proj_start for s in chain if not s.scaled)
         amount = all(s.plain for s in chain) and exempt(blanked, chain[-1].stop)
         if digits >= LONG_NUMBER_DIGITS and not amount:
@@ -440,11 +446,11 @@ def find_residue(blanked: str) -> list[int]:
 
 @dataclass
 class Scrubber:
-    """Одна на файл: таблица меток общая для всех строк файла."""
+    """One per file: the label table is shared by all lines of the file."""
 
-    # (метка, оригинал); вне repr: трассировка и логи не должны нести оригиналы
+    # (label, original); outside repr: tracebacks and logs must not carry originals
     replacements: list[tuple[str, str]] = field(default_factory=list, repr=False)
-    places: list[str] = field(default_factory=list)  # "строка:столбец" или "путь:строка:столбец"
+    places: list[str] = field(default_factory=list)  # "line:column" or "path:line:column"
     labels: dict[tuple[str, str], str] = field(default_factory=dict, repr=False)
     counts: dict[str, int] = field(default_factory=dict, repr=False)
 
