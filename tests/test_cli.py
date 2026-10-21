@@ -254,7 +254,7 @@ def test_residue_refused_with_exit_3_line_and_no_output(
     result = run([str(write_input(text)), "-o", str(out)])
 
     assert result.code == 3
-    assert result.err.strip() == "scrub: отказ, остаток в строках 2"
+    assert result.err.strip() == "scrub: refused, residue in lines 2"
     assert not out.exists()
 
 
@@ -283,7 +283,7 @@ def test_residue_report_written_with_originals_and_places_when_requested(
     assert report.stat().st_mode & 0o777 == 0o600
     body = report.read_text(encoding="utf-8")
     assert "Мария" in body
-    assert "ОСТАТОК\t2:" in body
+    assert "RESIDUE\t2:" in body
     assert not (tmp_path / "out.txt").exists()
 
 
@@ -295,7 +295,7 @@ def test_too_large_input_exits_2_without_output(
     result = run([str(write_input("а" * 600_000)), "-o", str(out)])
 
     assert result.code == 2
-    assert "вход слишком велик" in result.err
+    assert "input too large" in result.err
     assert not out.exists()
 
 

@@ -13,7 +13,7 @@ $ cat demo.txt
 Клиент: Меня зовут Иван Петров, восемь девятьсот двенадцать триста сорок пять шестьдесят семь восемьдесят девять.
 Клиент: Почта иван точка петров собака мэйл точка ру.
 $ scrub demo.txt -o demo.clean.txt
-scrub: замен 3 (ИМЯ 1, ТЕЛЕФОН 1, EMAIL 1)
+scrub: 3 replacements (ИМЯ 1, ТЕЛЕФОН 1, EMAIL 1)
 $ cat demo.clean.txt
 Менеджер: Назовите ваш телефон.
 Клиент: Меня зовут [ИМЯ_1], [ТЕЛЕФОН_1].
@@ -26,7 +26,7 @@ When digits are left that no rule recognizes, the tool refuses instead of passin
 $ cat demo2.txt
 Менеджер: Код 123 45 67 сохраните.
 $ scrub demo2.txt -o demo2.clean.txt; echo "exit=$?"
-scrub: отказ, остаток в строках 1
+scrub: refused, residue in lines 1
 exit=3
 ```
 

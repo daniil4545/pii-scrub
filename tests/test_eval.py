@@ -41,17 +41,17 @@ def test_doing_nothing_fails_on_blocking_classes(rows: list[dict]) -> None:
 def test_masking_everything_fails_on_the_negative_set(rows: list[dict]) -> None:
     failures = evaluate(rows, lambda text: "[X_1]").failures()
 
-    assert any("негативный набор" in f for f in failures)
+    assert any("negative set" in f for f in failures)
 
 
 def test_refusing_everything_fails_on_both_limits(rows: list[dict]) -> None:
     def refuse(_: str) -> str:
-        raise ScrubRefused("остаток")
+        raise ScrubRefused("residue")
 
     failures = evaluate(rows, refuse).failures()
 
-    assert any("отказов" in f for f in failures)
-    assert any("негативный набор" in f for f in failures)
+    assert any("refusals" in f for f in failures)
+    assert any("negative set" in f for f in failures)
 
 
 def test_default_data_path_points_at_the_committed_set() -> None:

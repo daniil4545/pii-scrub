@@ -90,7 +90,7 @@ def test_ner_failure_refuses_without_input_text(monkeypatch: pytest.MonkeyPatch)
     with pytest.raises(ScrubRefused) as refused:
         clean("Клиент: Иван Петров.")
 
-    assert refused.value.reason == "сбой NER"
+    assert refused.value.reason == "NER failure"
     assert "Иван" not in str(refused.value)
     assert refused.value.__suppress_context__
 
@@ -122,7 +122,7 @@ def test_nul_in_input_refused_as_input_error() -> None:
     with pytest.raises(ScrubRefused) as refused:
         clean("Код 12\x0034")
 
-    assert refused.value.reason == "недопустимый символ"
+    assert refused.value.reason == "invalid character"
 
 
 def test_timestamp_in_brackets_is_text_not_json() -> None:

@@ -378,7 +378,7 @@ def find_names(text: str) -> list[Finding]:
         doc.segment(segmenter)
         doc.tag_ner(tagger)
     except (OSError, ValueError, RuntimeError, IndexError, KeyError):
-        raise ScrubRefused("сбой NER") from None
+        raise ScrubRefused("NER failure") from None
     found = []
     for span in doc.spans:
         tokens = person_tokens(span, vocab) if span.type == "PER" else span.tokens
@@ -458,9 +458,9 @@ class Scrubber:
         if not text:
             return text
         if len(text.encode("utf-8")) > MAX_INPUT_BYTES:
-            raise ScrubRefused("вход слишком велик")
+            raise ScrubRefused("input too large")
         if BLANK in text:
-            raise ScrubRefused("недопустимый символ")
+            raise ScrubRefused("invalid character")
         findings = [
             *find_numbers(text),
             *find_phones(text),
@@ -501,7 +501,7 @@ class Scrubber:
             column = start - (newlines[line - 1] if line else -1)
             place = f"{line + 1}:{column}"
             self.places.append(f"{where}:{place}" if where else place)
-        raise ScrubRefused("остаток", self.places)
+        raise ScrubRefused("residue", self.places)
 
     def label(self, finding: Finding) -> str:
         known = (finding.kind, finding.key)

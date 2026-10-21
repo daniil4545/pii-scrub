@@ -39,12 +39,12 @@ class Report:
 
     def failures(self) -> list[str]:
         out = [
-            f"пропуски {kind}: {self.missed(kind)}" for kind in BLOCKING_KINDS if self.missed(kind)
+            f"misses {kind}: {self.missed(kind)}" for kind in BLOCKING_KINDS if self.missed(kind)
         ]
         if self.negative_texts and self.negative_bad / self.negative_texts > NEGATIVE_LIMIT:
-            out.append(f"негативный набор испорчен: {self.negative_bad} из {self.negative_texts}")
+            out.append(f"negative set damaged: {self.negative_bad} of {self.negative_texts}")
         if self.pii_texts and self.pii_refused / self.pii_texts > REFUSAL_LIMIT:
-            out.append(f"отказов на наборе с ПДн: {self.pii_refused} из {self.pii_texts}")
+            out.append(f"refusals on the personal-data set: {self.pii_refused} of {self.pii_texts}")
         return out
 
 
@@ -90,38 +90,39 @@ def default_scrub() -> Scrub:
 
 def print_report(report: Report, title: str) -> None:
     print(f"== {title}")
-    print(f"{'вид':10} {'форма':14} {'всего':>6} {'пропуск':>8}")
+    print(f"{'kind':10} {'form':14} {'total':>6} {'missed':>8}")
     for (kind, form), (total, missed) in sorted(report.secrets.items()):
         mark = "*" if kind in BLOCKING_KINDS else " "
         print(f"{kind:9}{mark} {form:14} {total:6} {missed:8}")
     print(
-        f"* блокирует приёмку. Отказов на наборе с ПДн: {report.pii_refused} из {report.pii_texts}"
+        "* blocks acceptance. Refusals on the personal-data set: "
+        f"{report.pii_refused} of {report.pii_texts}"
     )
     print(
-        "Негативный набор испорчен (ложная маска или отказ): "
-        f"{report.negative_bad} из {report.negative_texts}"
+        "Negative set damaged (false mask or refusal): "
+        f"{report.negative_bad} of {report.negative_texts}"
     )
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Замер очистки на синтетике")
+    parser = argparse.ArgumentParser(description="Scrubbing measurement on synthetic data")
     parser.add_argument("data", nargs="?", default=str(DEFAULT_DATA))
     parser.add_argument(
-        "--ids", action="store_true", help="печатать номера случаев с пропусками (без отложенных)"
+        "--ids", action="store_true", help="print case numbers with misses (deferred excluded)"
     )
     args = parser.parse_args(argv)
     rows = load_rows(Path(args.data))
     scrub = default_scrub()
     visible = evaluate(rows, scrub, only_visible=True)
     full = evaluate(rows, scrub)
-    print_report(visible, "видимая часть")
-    print_report(full, "весь набор")
+    print_report(visible, "visible part")
+    print_report(full, "whole set")
     if args.ids:
-        print("пропуски:", ", ".join(visible.missed_ids) or "нет")
-        print("негативные:", ", ".join(visible.negative_bad_ids) or "нет")
+        print("misses:", ", ".join(visible.missed_ids) or "none")
+        print("negative:", ", ".join(visible.negative_bad_ids) or "none")
     failures = full.failures()
     for line in failures:
-        print(f"ПРОВАЛ: {line}", file=sys.stderr)
+        print(f"FAIL: {line}", file=sys.stderr)
     return 1 if failures else 0
 
 

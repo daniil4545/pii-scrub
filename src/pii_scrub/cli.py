@@ -21,8 +21,8 @@ REPORT_MODE = 0o600
 EXIT_RESIDUE = 3
 EXIT_INPUT = 2
 EXIT_BROKEN = 1
-RESIDUE = "остаток"
-INPUT_REASONS = {"вход слишком велик", "недопустимый символ"}
+RESIDUE = "residue"
+INPUT_REASONS = {"input too large", "invalid character"}
 
 
 class InputError(Exception):
@@ -31,11 +31,11 @@ class InputError(Exception):
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="scrub", description="Заменяет персональные данные в русском тексте сквозными метками."
+        prog="scrub", description="Replaces personal data in Russian text with stable labels."
     )
-    parser.add_argument("input", nargs="?", help="файл; нет или '-' - stdin")
-    parser.add_argument("-o", "--output", help="файл результата; нет - stdout")
-    parser.add_argument("--report", help="файл с оригиналами (права 0600)")
+    parser.add_argument("input", nargs="?", help="file; omit or '-' for stdin")
+    parser.add_argument("-o", "--output", help="output file; omit for stdout")
+    parser.add_argument("--report", help="file for the originals (mode 0600)")
     return parser.parse_args(argv)
 
 
@@ -93,7 +93,7 @@ def scrub_json(value: Any, scrubber: Scrubber, path: str, refusals: list[str]) -
 
 def scrub_text(text: str, scrubber: Scrubber) -> str:
     if len(text.encode("utf-8")) > MAX_INPUT_BYTES:
-        raise ScrubRefused("вход слишком велик")
+        raise ScrubRefused("input too large")
     if not JSON_START.match(text):
         if ESCAPE.search(text):
             raise InputError("leftover \\uXXXX escape in text: NER cannot see such names")
@@ -125,7 +125,7 @@ def write_report(path: str, scrubber: Scrubber) -> None:
     """The only place with originals: mode 0600 is set before any data is written."""
     unique = dict.fromkeys(scrubber.replacements)
     lines = [f"{label}\t{' '.join(original.split())}" for label, original in unique]
-    lines += [f"ОСТАТОК\t{place}" for place in scrubber.places]
+    lines += [f"RESIDUE\t{place}" for place in scrubber.places]
     try:
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, REPORT_MODE)
         os.fchmod(fd, REPORT_MODE)
@@ -141,18 +141,18 @@ def summary(scrubber: Scrubber) -> str:
     """Replacement counters; the summary has no input text."""
     kinds = Counter(label[1 : label.rindex("_")] for label, _ in scrubber.replacements)
     detail = ", ".join(f"{kind} {count}" for kind, count in kinds.items())
-    return f"scrub: замен {len(scrubber.replacements)}" + (f" ({detail})" if detail else "")
+    return f"scrub: {len(scrubber.replacements)} replacements" + (f" ({detail})" if detail else "")
 
 
 def refusal_message(refused: ScrubRefused) -> str:
     """Refusal message: the reason and the residue places (lines or paths), without the input
     text."""
     if not refused.places:
-        return f"scrub: отказ, {refused.reason}"
+        return f"scrub: refused, {refused.reason}"
     if all(re.fullmatch(r"\d+:\d+", place) for place in refused.places):
         lines = dict.fromkeys(place.split(":")[0] for place in refused.places)
-        return f"scrub: отказ, остаток в строках {', '.join(lines)}"
-    return f"scrub: отказ, остаток в {', '.join(refused.places)}"
+        return f"scrub: refused, residue in lines {', '.join(lines)}"
+    return f"scrub: refused, residue in {', '.join(refused.places)}"
 
 
 def refusal_code(refused: ScrubRefused) -> int:

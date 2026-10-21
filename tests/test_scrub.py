@@ -106,7 +106,7 @@ def test_residue_digits_refuse_without_text_in_error(text: str) -> None:
     with pytest.raises(ScrubRefused) as refused:
         scrubber.scrub(text, "1")
 
-    assert refused.value.reason == "остаток"
+    assert refused.value.reason == "residue"
     assert len(refused.value.places) == 1
     assert not re.search(
         r"\d{3}", str(refused.value) + " ".join(refused.value.places).replace("1:1:", "")
@@ -138,7 +138,7 @@ def test_input_over_limit_refused_with_reason() -> None:
     with pytest.raises(ScrubRefused) as refused:
         Scrubber().scrub("а" * (MAX_INPUT_BYTES // 2 + 1), "")
 
-    assert refused.value.reason == "вход слишком велик"
+    assert refused.value.reason == "input too large"
 
 
 SPOKEN = [
