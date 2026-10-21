@@ -2,33 +2,13 @@
 
 Replace personal data in Russian text with stable labels, including phone numbers and e-mails spoken as words.
 
-[![CI](https://github.com/daniil4545/pii-scrub/actions/workflows/ci.yml/badge.svg)](https://github.com/daniil4545/pii-scrub/actions/workflows/ci.yml)
+[![ci](https://github.com/daniil4545/pii-scrub/actions/workflows/ci.yml/badge.svg)](https://github.com/daniil4545/pii-scrub/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/daniil4545/pii-scrub)](https://github.com/daniil4545/pii-scrub/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Built for call transcripts: a speech recognizer writes "восемь девятьсот двенадцать триста сорок пять" instead of digits, and most PII tools stop at digits.
+![pii-scrub on a call transcript: the phone number and e-mail spoken as words are replaced with labels, a text with leftover digits is refused](assets/demo.gif)
 
-```console
-$ cat demo.txt
-Менеджер: Назовите ваш телефон.
-Клиент: Меня зовут Иван Петров, восемь девятьсот двенадцать триста сорок пять шестьдесят семь восемьдесят девять.
-Клиент: Почта иван точка петров собака мэйл точка ру.
-$ scrub demo.txt -o demo.clean.txt
-scrub: 3 replacements (ИМЯ 1, ТЕЛЕФОН 1, EMAIL 1)
-$ cat demo.clean.txt
-Менеджер: Назовите ваш телефон.
-Клиент: Меня зовут [ИМЯ_1], [ТЕЛЕФОН_1].
-Клиент: Почта [EMAIL_1].
-```
-
-When digits are left that no rule recognizes, the tool refuses instead of passing the text on:
-
-```console
-$ cat demo2.txt
-Менеджер: Код 123 45 67 сохраните.
-$ scrub demo2.txt -o demo2.clean.txt; echo "exit=$?"
-scrub: refused, residue in lines 1
-exit=3
-```
+Built for call transcripts: a speech recognizer writes "восемь девятьсот двенадцать триста сорок пять" instead of digits, and most PII tools stop at digits. Labels are in Russian (`[ИМЯ_1]`, `[ТЕЛЕФОН_1]`), because the text is.
 
 Status: version 0.1, tested on generated text, not on real calls yet. See [Evaluation](#evaluation) and [Limitations](#limitations).
 
@@ -49,14 +29,44 @@ Status: version 0.1, tested on generated text, not on real calls yet. See [Evalu
 
 ## Install
 
-Python 3.13 and [uv](https://docs.astral.sh/uv/).
+Needs [uv](https://docs.astral.sh/uv/); it fetches Python 3.13 itself.
 
 ```sh
-git clone https://github.com/daniil4545/pii-scrub
-cd pii-scrub
-uv sync
-uv run scrub demo.txt -o demo.clean.txt --report demo.report
+uv tool install git+https://github.com/daniil4545/pii-scrub@v0.1.1
 ```
+
+From a clone, for development: `git clone https://github.com/daniil4545/pii-scrub && cd pii-scrub && uv sync`, then `uv run scrub`.
+
+## Quick start
+
+1. Save this text as `demo.txt`:
+
+```text
+Менеджер: Назовите ваш телефон.
+Клиент: Меня зовут Иван Петров, восемь девятьсот двенадцать триста сорок пять шестьдесят семь восемьдесят девять.
+Клиент: Почта иван точка петров собака мэйл точка ру.
+```
+
+2. Clean it. The summary goes to stderr, the text to the file:
+
+```console
+$ scrub demo.txt -o demo.clean.txt
+scrub: 3 replacements (ИМЯ 1, ТЕЛЕФОН 1, EMAIL 1)
+$ cat demo.clean.txt
+Менеджер: Назовите ваш телефон.
+Клиент: Меня зовут [ИМЯ_1], [ТЕЛЕФОН_1].
+Клиент: Почта [EMAIL_1].
+```
+
+3. When digits are left that no rule recognizes, the tool refuses instead of passing the text on. `Менеджер: Код 123 45 67 сохраните.` in `demo2.txt` gives:
+
+```console
+$ scrub demo2.txt -o demo2.clean.txt; echo "exit=$?"
+scrub: refused, residue in lines 1
+exit=3
+```
+
+Without `-o` the result goes to stdout, without a file name the input is read from stdin. `--report FILE` writes the originals and the places of a refusal to a separate file (mode 0600).
 
 Exit codes: 0 done; 1 internal error or NER failure; 2 input or write error (not UTF-8, broken JSON, input over 1 MB); 3 refusal, digits left.
 

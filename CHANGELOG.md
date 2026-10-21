@@ -6,6 +6,18 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-21
+
+### Changed
+
+- CLI messages, help texts and refusal reasons are in English; labels in the output stay Russian.
+- README: demo recording, quick start with real output, install with `uv tool install`.
+
+### Added
+
+- `docs/demo.tape`: the VHS script that records `assets/demo.gif`.
+- CI runs `make eval` and `uv build` besides the format, lint and test checks.
+
 ## [0.1.0] - 2026-10-19
 
 ### Added
@@ -18,9 +30,13 @@ and the project follows [Semantic Versioning](https://semver.org/).
 - Size limit of 1 MB per input; NUL in the input is rejected.
 - Report file with the originals and the places of a refusal (mode 0600); the output, stderr and exceptions never contain them.
 - `make eval`: evaluation on a frozen synthetic set from `tests/gen/generate.py`, with false-mask and refusal limits.
-- MIT license, CI, snapshot script for the public repository.
+- MIT license and CI.
 
 ### Changed
 
 - Digits left after masking are no longer only flagged: the tool refuses with exit code 3.
 - JSON input keeps collecting the places of residue over the whole file before refusing.
+
+[Unreleased]: https://github.com/daniil4545/pii-scrub/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/daniil4545/pii-scrub/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/daniil4545/pii-scrub/releases/tag/v0.1.0
