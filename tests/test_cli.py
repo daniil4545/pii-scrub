@@ -232,7 +232,7 @@ def test_unexpected_error_exits_1_with_kind_but_without_input_text(
 ) -> None:
     out = tmp_path / "out.txt"
 
-    def boom(self: Scrubber, text: str, where: str) -> str:
+    def boom(self: Scrubber, text: str) -> str:
         raise RuntimeError(f"failed on {text}")
 
     monkeypatch.setattr(Scrubber, "scrub", boom)
@@ -245,46 +245,35 @@ def test_unexpected_error_exits_1_with_kind_but_without_input_text(
     assert not out.exists()
 
 
-def test_residue_refused_with_exit_3_line_and_no_output(
+def test_residue_masked_with_exit_0_and_original_in_report(
     run: Run, write_input: WriteInput, tmp_path: Path
 ) -> None:
     text = "Клиент: Добрый день.\nМенеджер: Код 123 45 67 сохраните.\n"
     out = tmp_path / "out.txt"
+    report = tmp_path / "r.tsv"
 
-    result = run([str(write_input(text)), "-o", str(out)])
+    result = run([str(write_input(text)), "-o", str(out), "--report", str(report)])
 
-    assert result.code == 3
-    assert result.err.strip() == "scrub: refused, residue in lines 2"
-    assert not out.exists()
-
-
-def test_residue_in_json_refused_with_path_of_every_value(
-    run: Run, write_input: WriteInput, tmp_path: Path
-) -> None:
-    raw = json.dumps({"call_report": {"Факты": "Код 123 45 67 сохраните."}, "t": "Код 765 43 21"})
-
-    result = run([str(write_input(raw)), "-o", str(tmp_path / "out.json")])
-
-    assert result.code == 3
-    assert "call_report.Факты:1:" in result.err
-    assert "t:1:" in result.err
+    assert result.code == 0
+    assert "Код [ЧИСЛА_1] сохраните" in out.read_text(encoding="utf-8")
+    assert "[ЧИСЛА_1]\t123 45 67" in report.read_text(encoding="utf-8")
     assert "45 67" not in result.err
 
 
-def test_residue_report_written_with_originals_and_places_when_requested(
+def test_json_uuid_kept_and_residue_masked(
     run: Run, write_input: WriteInput, tmp_path: Path
 ) -> None:
-    text = "Клиент: Меня зовут Мария Орлова.\nМенеджер: Код 123 45 67 сохраните.\n"
-    report = tmp_path / "r.tsv"
+    uuid = "123e4567-e89b-12d3-a456-426614174000"
+    raw = json.dumps({"transcript_id": uuid, "t": "Код 765 43 21"})
+    out = tmp_path / "out.json"
 
-    result = run([str(write_input(text)), "-o", str(tmp_path / "out.txt"), "--report", str(report)])
+    result = run([str(write_input(raw)), "-o", str(out)])
 
-    assert result.code == 3
-    assert report.stat().st_mode & 0o777 == 0o600
-    body = report.read_text(encoding="utf-8")
-    assert "Мария" in body
-    assert "RESIDUE\t2:" in body
-    assert not (tmp_path / "out.txt").exists()
+    assert result.code == 0
+    assert json.loads(out.read_text(encoding="utf-8")) == {
+        "transcript_id": uuid,
+        "t": "Код [ЧИСЛА_1]",
+    }
 
 
 def test_too_large_input_exits_2_without_output(

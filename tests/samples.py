@@ -89,7 +89,7 @@ ALL_KINDS_LABELS = [
     "ПАСПОРТ",
 ]
 
-# Residue after masking: 7 or more digits not recognized as a number is a refusal.
+# Residue after masking: 7 or more digits not recognized as a number get a ЧИСЛА label.
 RESIDUE_TEXTS = [
     "Менеджер: Код 123 45 67 сохраните.",
     "Менеджер: Артикул 12-34-567-89 в наличии.",

@@ -24,5 +24,5 @@ Sleep 5s
 Type "cat demo.clean.txt" Enter
 Sleep 4s
 Type "clear" Enter
-Type "scrub demo2.txt -o demo2.clean.txt; echo exit=$?" Enter
+Type "scrub demo2.txt -o demo2.clean.txt && cat demo2.clean.txt" Enter
 Sleep 4s

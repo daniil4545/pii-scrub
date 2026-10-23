@@ -6,6 +6,27 @@ and the project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-23
+
+### Changed
+
+- Residue is masked, not refused: 7 or more digits left after masks become `[ЧИСЛА_N]`, spoken e-mail residue becomes `[EMAIL_N]`. Exit code 3 and `ScrubRefused.places` are removed.
+- `Scrubber.scrub` takes only the text.
+
+### Added
+
+- `Scrubber(keep=...)` and `scrub --keep FILE`: caller words that are never masked, such as the own company name, in the format of `data/terms.txt`.
+- Call-context rules for misses of the NER on reference calls (`context.py`): a name addressed at the start of a phrase ("Пётр, здравствуйте!"), a street without "улица" before a house number, a surname or place after "на", "по", a house number after a place, a client name after "называется", "комбинат" and similar words, a hyphenated capitalized name, a one-word reply unknown to the dictionary.
+- A name, place or organization found once is masked with the same label wherever it repeats in the file.
+- Words glued by ASR ("НаКамчатку") are split for the NER.
+- Pieces of a dictated number: a number of 2 or more digits within 3 lines of a masked number or e-mail, or of the words "ИНН", "телефон", "почта", becomes `[ЧИСЛА_N]`. Amounts with a currency and quantities with a unit stay.
+
+### Fixed
+
+- Equipment brands, the industry registry and radio terms from `data/terms.txt` are no longer masked as names, places or organizations. Entries match whole words; only entries marked with `*` are stems.
+- A one-word NER place or organization that can only be a verb or particle ("Пойдёт") is not masked; punctuation is never a name.
+- UUID service identifiers (`transcript_id`) are not residue.
+
 ## [0.1.1] - 2026-10-21
 
 ### Changed

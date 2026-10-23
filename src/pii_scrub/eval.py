@@ -85,7 +85,7 @@ def evaluate(rows: list[dict], scrub: Scrub, only_visible: bool = False) -> Repo
 
 def default_scrub() -> Scrub:
     load_natasha()
-    return lambda text: Scrubber().scrub(text, "")
+    return lambda text: Scrubber().scrub(text)
 
 
 def print_report(report: Report, title: str) -> None:

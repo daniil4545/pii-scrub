@@ -11,7 +11,7 @@ from pii_scrub.scrub import Scrubber, ScrubRefused
 
 
 def clean(text: str) -> str:
-    return Scrubber().scrub(text, "")
+    return Scrubber().scrub(text)
 
 
 def test_digit_pieces_phone_across_replies_masked() -> None:
@@ -113,7 +113,7 @@ def test_ner_failure_exits_1_without_source_message(
 
 def test_repr_of_scrubber_carries_no_originals() -> None:
     scrubber = Scrubber()
-    scrubber.scrub("Клиент: Меня зовут Мария Орлова.", "")
+    scrubber.scrub("Клиент: Меня зовут Мария Орлова.")
 
     assert "Орлова" not in repr(scrubber)
 
@@ -134,16 +134,105 @@ def test_timestamp_in_brackets_is_text_not_json() -> None:
 def test_hostile_long_input_finishes_quickly() -> None:
     started = time.monotonic()
 
-    with pytest.raises(ScrubRefused):
-        clean("девять " * 20_000)
+    result = clean("девять " * 20_000)
+
+    assert time.monotonic() - started < 20
+    assert "девять" not in result
+
+
+def test_number_dictated_in_pieces_across_replies_masked_not_refused() -> None:
+    text = (
+        "Клиент: Номер договора сорок пять семьдесят\n"
+        "Менеджер: так\n"
+        "Клиент: двенадцать тридцать четыре\n"
+        "Менеджер: записал"
+    )
+
+    result = clean(text)
+
+    assert "[ЧИСЛА_1]" in result
+    assert not re.search(r"сорок|семьдесят|двенадцать|тридцать", result)
+
+
+def test_dictation_tail_after_masked_inn_masked() -> None:
+    text = "Клиент: ИНН 7707083893.\nМенеджер: Повторите конец.\nКлиент: Последние девяносто три."
+
+    result = clean(text)
+
+    assert "[ИНН_1]" in result
+    assert "[ЧИСЛА_1]" in result
+    assert "девяносто" not in result
+
+
+def test_sum_after_masked_phone_is_not_a_tail() -> None:
+    result = clean("Клиент: Телефон 8 912 345-67-89.\nМенеджер: С вас 500 рублей.")
+
+    assert "500 рублей" in result
+
+
+def test_uuid_service_id_is_not_masked() -> None:
+    text = "123e4567-e89b-12d3-a456-426614174000"
+
+    assert clean(text) == text
+
+
+def test_dictation_piece_before_repeated_phone_masked() -> None:
+    text = "Клиент: Записывайте, девятьсот двенадцать.\nМенеджер: Так.\nМенеджер: 8 912 345-67-89?"
+
+    result = clean(text)
+
+    assert "[ТЕЛЕФОН_1]" in result
+    assert "двенадцать" not in result
+
+
+def test_digits_after_trigger_word_masked() -> None:
+    result = clean("Клиент: ИНН сейчас скажу.\nКлиент: 7707, 08:3.")
+
+    assert not re.search(r"\d{2}", result)
+
+
+def test_quantity_with_unit_near_phone_kept() -> None:
+    result = clean("Клиент: Телефон 8 912 345-67-89.\nКлиент: Нужно сорок пять штук.")
+
+    assert "сорок пять штук" in result
+
+
+def test_inn_with_thousand_after_trigger_masked() -> None:
+    result = clean("Клиент: ИНН семь тысяч семьсот семь ноль восемь три восемь девять три.")
+
+    assert not re.search(r"семь|восемь|девять", result)
+
+
+def test_dictation_piece_before_diminutive_masked() -> None:
+    result = clean("Клиент: Телефон 8 912 345-67-89.\nКлиент: Ещё сорок два секундочку.")
+
+    assert "сорок" not in result
+
+
+def test_many_triggers_and_short_numbers_finish_quickly() -> None:
+    started = time.monotonic()
+
+    clean("почта 12 " * 20_000)
 
     assert time.monotonic() - started < 20
 
 
-def test_places_are_capped() -> None:
-    scrubber = Scrubber()
+def test_single_digit_next_to_masked_number_masked() -> None:
+    result = clean("Клиент: ИНН семь, 7707083893: 4.")
 
-    with pytest.raises(ScrubRefused):
-        scrubber.scrub("1234567 " * 500, "")
+    assert "семь" not in result
+    assert ": 4" not in result
 
-    assert len(scrubber.places) <= scrub_module.MAX_PLACES
+
+def test_single_digit_far_from_number_kept() -> None:
+    result = clean(
+        "Клиент: Телефон 8 912 345-67-89.\nМенеджер: Отлично, нам нужен один коммутатор."
+    )
+
+    assert "один коммутатор" in result
+
+
+def test_single_digit_after_dictation_piece_masked() -> None:
+    result = clean("Клиент: ИНН сейчас скажу.\nКлиент: 7707, 08: 3.")
+
+    assert not re.search(r"\d", scrub_module.LABEL.sub("", result))

@@ -1,6 +1,6 @@
 [project]
 name = "pii-scrub"
-version = "0.1.1"
+version = "0.2.0"
 license = "MIT"
 description = "Replace personal data in Russian text with stable labels: CLI and library"
 requires-python = ">=3.13,<3.14"
